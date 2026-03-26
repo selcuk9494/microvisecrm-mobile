@@ -3,7 +3,10 @@ import { SafeAreaView, StatusBar, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_ORIGIN || 'https://microvisecrm-api-2qfo.vercel.app/';
+// Vercel deployment'ı yenilendiğinde önbellekten eski (404) sayfanın gelmesini engellemek için
+// URL'in sonuna rastgele bir query string ekliyoruz.
+const baseUrl = process.env.EXPO_PUBLIC_WEB_ORIGIN || 'https://microvisecrm-api-2qfo.vercel.app/';
+const WEB_URL = `${baseUrl}?v=${Date.now()}`;
 
 export default function App() {
   if (Platform.OS === 'web') {
@@ -22,6 +25,8 @@ export default function App() {
         domStorageEnabled={true}
         allowsInlineMediaPlayback={true}
         bounces={false}
+        cacheEnabled={false}
+        incognito={true}
       />
     </SafeAreaView>
   );
