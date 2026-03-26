@@ -19,7 +19,7 @@ module.exports = () => {
   },
   extra: {
     eas: { projectId: "44d5031d-2f33-4b56-bc1f-989d9b2fa543" },
-    webOrigin: process.env.EXPO_PUBLIC_WEB_ORIGIN || "http://localhost:3002"
+    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "https://microvisecrm-api.vercel.app"
   }
   });
 };

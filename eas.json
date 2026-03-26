@@ -6,7 +6,7 @@
   "build": {
     "production": {
       "env": {
-        "EXPO_PUBLIC_WEB_ORIGIN": "https://microvisecrm.vercel.app"
+        "EXPO_PUBLIC_API_BASE_URL": "https://microvisecrm-api.vercel.app"
       },
       "ios": {
         "image": "latest"
