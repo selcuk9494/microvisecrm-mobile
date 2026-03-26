@@ -3,9 +3,8 @@ import { SafeAreaView, StatusBar, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 
-// Vercel deployment'ı yenilendiğinde önbellekten eski (404) sayfanın gelmesini engellemek için
-// URL'in sonuna rastgele bir query string ekliyoruz.
-const baseUrl = process.env.EXPO_PUBLIC_WEB_ORIGIN || 'https://microvisecrm-api-2qfo.vercel.app/';
+// Çevresel değişkenlerle (ENV) ilgili tüm sorunları ortadan kaldırmak için URL'yi doğrudan (hardcode) gömüyoruz.
+const baseUrl = 'https://microvisecrm-api-2qfo.vercel.app/';
 const WEB_URL = `${baseUrl}?v=${Date.now()}`;
 
 export default function App() {
