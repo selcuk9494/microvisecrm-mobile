@@ -3,7 +3,7 @@ import { SafeAreaView, StatusBar, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_ORIGIN || 'https://microvisecrm.vercel.app';
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_ORIGIN || 'https://microvisecrm-api-2qfo.vercel.app/';
 
 export default function App() {
   if (Platform.OS === 'web') {
