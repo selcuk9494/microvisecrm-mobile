@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StatusBar,
   Text,
   TextInput,
@@ -91,24 +94,6 @@ function SectionTitle({ title, right }) {
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.text }}>{title}</Text>
       {right || null}
-    </View>
-  );
-}
-
-function Card({ title, value }) {
-  return (
-    <View
-      style={{
-        backgroundColor: Colors.card,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        borderRadius: 12,
-        padding: 14,
-        flexGrow: 1,
-      }}
-    >
-      <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "600" }}>{title}</Text>
-      <Text style={{ marginTop: 6, color: Colors.text, fontSize: 22, fontWeight: "800" }}>{String(value ?? "-")}</Text>
     </View>
   );
 }
@@ -807,7 +792,16 @@ function WorkOrderCreateModal({ token, visible, onClose, onCreated }) {
           )}
         </View>
       ) : (
-        <View style={{ flex: 1, padding: 16 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        >
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+          >
+            <Pressable onPress={Keyboard.dismiss}>
           <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 12 }}>
             <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Müşteri</Text>
             <Text style={{ color: Colors.text, fontWeight: "900", marginTop: 4 }}>{customer?.customerName || "-"}</Text>
@@ -937,7 +931,9 @@ function WorkOrderCreateModal({ token, visible, onClose, onCreated }) {
           >
             {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Kaydet</Text>}
           </Pressable>
-        </View>
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
     </SafeAreaView>
   );
@@ -1024,7 +1020,13 @@ function LineCreateModal({ token, customer, visible, onClose, onCreated }) {
           <Text style={{ color: "#fff", fontWeight: "900" }}>Kapat</Text>
         </Pressable>
       </View>
-      <View style={{ flex: 1, padding: 16 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+          <Pressable onPress={Keyboard.dismiss}>
         <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 12 }}>
           <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Müşteri</Text>
           <Text style={{ color: Colors.text, fontWeight: "900", marginTop: 4 }}>{customer?.customerName || "-"}</Text>
@@ -1105,7 +1107,9 @@ function LineCreateModal({ token, customer, visible, onClose, onCreated }) {
             </Pressable>
           </>
         )}
-      </View>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -1214,13 +1218,19 @@ function WorkOrderDetailModal({ token, workOrderId, visible, onClose, onUpdated 
         </Pressable>
       </View>
 
-      <View style={{ flex: 1, padding: 16 }}>
-        {loading ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator />
-          </View>
-        ) : (
-          <>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+          <Pressable onPress={Keyboard.dismiss}>
+            {loading ? (
+              <View style={{ height: 200, alignItems: "center", justifyContent: "center" }}>
+                <ActivityIndicator />
+              </View>
+            ) : (
+              <>
             {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
             <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 18, padding: 14, backgroundColor: Colors.card, marginBottom: 12 }}>
               <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Müşteri</Text>
@@ -1348,9 +1358,11 @@ function WorkOrderDetailModal({ token, workOrderId, visible, onClose, onUpdated 
                 <Text style={{ color: Colors.sub }}>Kayıt yok</Text>
               )}
             </View>
-          </>
-        )}
-      </View>
+              </>
+            )}
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <LineCreateModal
         token={token}
