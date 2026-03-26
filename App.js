@@ -452,6 +452,281 @@ function WorkOrdersScreen({ token }) {
   );
 }
 
+function LinesScreen({ token }) {
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(
+    async ({ nextPage = 1, append = false } = {}) => {
+      if (loading) return;
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(nextPage));
+        params.set("pageSize", String(pageSize));
+        if (status) params.set("filter[status]", status);
+        const data = await apiRequest(`/lines?${params.toString()}`, { token });
+        setTotal(Number(data?.total || 0));
+        setPage(Number(data?.page || nextPage));
+        const items = Array.isArray(data?.data) ? data.data : [];
+        setRows((prev) => (append ? [...prev, ...items] : items));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [status, token, pageSize, loading]
+  );
+
+  useEffect(() => {
+    load({ nextPage: 1, append: false });
+  }, [load]);
+
+  const canLoadMore = rows.length < total;
+
+  const chip = (key, label) => (
+    <Pressable
+      onPress={() => setStatus(key)}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: 999,
+        backgroundColor: status === key ? Colors.primary : Colors.card,
+        borderWidth: 1,
+        borderColor: Colors.border,
+      }}
+    >
+      <Text style={{ color: status === key ? "#fff" : Colors.text, fontWeight: "800", fontSize: 12 }}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <SectionTitle title="Hatlar" />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        {chip("", "Tümü")}
+        {chip("aktif", "Aktif")}
+        {chip("pasif", "Pasif")}
+      </View>
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => String(item.id)}
+        onEndReached={() => {
+          if (!canLoadMore) return;
+          load({ nextPage: page + 1, append: true });
+        }}
+        onEndReachedThreshold={0.2}
+        renderItem={({ item }) => (
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+              <Text style={{ color: Colors.text, fontWeight: "900" }}>{item.lineNumber || "-"}</Text>
+              <Text style={{ color: item.status === "aktif" ? "#16a34a" : Colors.sub, fontWeight: "800", fontSize: 12 }}>
+                {String(item.status || "-").toUpperCase()}
+              </Text>
+            </View>
+            <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
+              {item.customer?.customerName ? `Müşteri: ${item.customer.customerName}` : ""}
+              {item.customer?.customerName && item.operator?.name ? "  •  " : ""}
+              {item.operator?.name ? `Operatör: ${item.operator.name}` : ""}
+            </Text>
+            <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
+              Bitiş: {item.endDate ? String(item.endDate).slice(0, 10) : "-"} {item.hasLicense ? " • Lisans var" : ""}
+            </Text>
+          </View>
+        )}
+        ListFooterComponent={
+          loading ? (
+            <View style={{ paddingVertical: 12 }}>
+              <ActivityIndicator />
+            </View>
+          ) : null
+        }
+      />
+    </View>
+  );
+}
+
+function LicensesScreen({ token }) {
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(
+    async ({ nextPage = 1, append = false } = {}) => {
+      if (loading) return;
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(nextPage));
+        params.set("pageSize", String(pageSize));
+        if (status) params.set("filter[status]", status);
+        const data = await apiRequest(`/licenses?${params.toString()}`, { token });
+        setTotal(Number(data?.total || 0));
+        setPage(Number(data?.page || nextPage));
+        const items = Array.isArray(data?.data) ? data.data : [];
+        setRows((prev) => (append ? [...prev, ...items] : items));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [status, token, pageSize, loading]
+  );
+
+  useEffect(() => {
+    load({ nextPage: 1, append: false });
+  }, [load]);
+
+  const canLoadMore = rows.length < total;
+
+  const chip = (key, label) => (
+    <Pressable
+      onPress={() => setStatus(key)}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: 999,
+        backgroundColor: status === key ? Colors.primary : Colors.card,
+        borderWidth: 1,
+        borderColor: Colors.border,
+      }}
+    >
+      <Text style={{ color: status === key ? "#fff" : Colors.text, fontWeight: "800", fontSize: 12 }}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <SectionTitle title="Lisanslar" />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        {chip("", "Tümü")}
+        {chip("aktif", "Aktif")}
+        {chip("pasif", "Pasif")}
+      </View>
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => String(item.id)}
+        onEndReached={() => {
+          if (!canLoadMore) return;
+          load({ nextPage: page + 1, append: true });
+        }}
+        onEndReachedThreshold={0.2}
+        renderItem={({ item }) => (
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+              <Text style={{ color: Colors.text, fontWeight: "900" }}>{item.licenseName || "-"}</Text>
+              <Text style={{ color: item.status === "aktif" ? "#16a34a" : Colors.sub, fontWeight: "800", fontSize: 12 }}>
+                {String(item.status || "-").toUpperCase()}
+              </Text>
+            </View>
+            <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>Bitiş: {item.endDate ? String(item.endDate).slice(0, 10) : "-"}</Text>
+            <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
+              {item.hasLine ? "Hat bağlı" : "Hat bağlı değil"} {item.customerId ? ` • Müşteri: ${String(item.customerId).slice(0, 8)}…` : ""}
+            </Text>
+          </View>
+        )}
+        ListFooterComponent={
+          loading ? (
+            <View style={{ paddingVertical: 12 }}>
+              <ActivityIndicator />
+            </View>
+          ) : null
+        }
+      />
+    </View>
+  );
+}
+
+function ReportsScreen({ token }) {
+  const [tab, setTab] = useState("payments");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = tab === "payments" ? await apiRequest("/reports/payments", { token }) : await apiRequest("/reports/branches", { token });
+      setRows(Array.isArray(data?.data) ? data.data : []);
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <SectionTitle title="Raporlar" />
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+        <Pressable
+          onPress={() => setTab("payments")}
+          style={{
+            flex: 1,
+            paddingVertical: 10,
+            borderRadius: 12,
+            alignItems: "center",
+            backgroundColor: tab === "payments" ? Colors.primary : Colors.card,
+            borderWidth: 1,
+            borderColor: Colors.border,
+          }}
+        >
+          <Text style={{ color: tab === "payments" ? "#fff" : Colors.text, fontWeight: "800" }}>Tahsilatlar</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setTab("branches")}
+          style={{
+            flex: 1,
+            paddingVertical: 10,
+            borderRadius: 12,
+            alignItems: "center",
+            backgroundColor: tab === "branches" ? Colors.primary : Colors.card,
+            borderWidth: 1,
+            borderColor: Colors.border,
+          }}
+        >
+          <Text style={{ color: tab === "branches" ? "#fff" : Colors.text, fontWeight: "800" }}>Şubeler</Text>
+        </Pressable>
+      </View>
+      {loading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator />
+        </View>
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={(item, idx) => String(item?.id || item?.branchId || idx)}
+          renderItem={({ item }) =>
+            tab === "payments" ? (
+              <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}>
+                <Text style={{ color: Colors.text, fontWeight: "900" }}>{item.customer?.customerName || "Müşteri"}</Text>
+                <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>{item.workOrder?.orderNumber || ""}</Text>
+                <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
+                  Tutar: {item.amount}  •  {item.paidAt ? String(item.paidAt).slice(0, 10) : ""}
+                </Text>
+              </View>
+            ) : (
+              <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}>
+                <Text style={{ color: Colors.text, fontWeight: "900" }}>{item.name || "-"}</Text>
+                <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>{item.address || ""}</Text>
+                <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
+                  Açık: {item.open} • Devam: {item.progress} • Kapalı: {item.closed}
+                </Text>
+              </View>
+            )
+          }
+        />
+      )}
+    </View>
+  );
+}
+
 function SettingsScreen({ user, onLogout }) {
   return (
     <View style={{ flex: 1, padding: 16 }}>
@@ -546,6 +821,9 @@ export default function App() {
     if (tab === "dashboard") return <DashboardScreen token={token} />;
     if (tab === "customers") return <CustomersScreen token={token} />;
     if (tab === "workOrders") return <WorkOrdersScreen token={token} />;
+    if (tab === "lines") return <LinesScreen token={token} />;
+    if (tab === "licenses") return <LicensesScreen token={token} />;
+    if (tab === "reports") return <ReportsScreen token={token} />;
     return <SettingsScreen user={user} onLogout={onLogout} />;
   }, [tab, token, user, onLogout]);
 
@@ -581,6 +859,9 @@ export default function App() {
         <TabButton active={tab === "dashboard"} label="Anasayfa" onPress={() => setTab("dashboard")} />
         <TabButton active={tab === "customers"} label="Müşteriler" onPress={() => setTab("customers")} />
         <TabButton active={tab === "workOrders"} label="İş Emirleri" onPress={() => setTab("workOrders")} />
+        <TabButton active={tab === "lines"} label="Hatlar" onPress={() => setTab("lines")} />
+        <TabButton active={tab === "licenses"} label="Lisanslar" onPress={() => setTab("licenses")} />
+        <TabButton active={tab === "reports"} label="Raporlar" onPress={() => setTab("reports")} />
         <TabButton active={tab === "settings"} label="Ayarlar" onPress={() => setTab("settings")} />
       </View>
     </SafeAreaView>
