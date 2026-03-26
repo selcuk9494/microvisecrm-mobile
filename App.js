@@ -14,13 +14,16 @@ import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 
 const Colors = {
-  bg: "#ffffff",
+  bg: "#f6f7fb",
   text: "#0f172a",
   sub: "#475569",
   border: "#e2e8f0",
-  primary: "#2563eb",
+  card: "#ffffff",
+  primary: "#6d28d9",
+  primary2: "#7c3aed",
   danger: "#dc2626",
-  card: "#f8fafc",
+  success: "#16a34a",
+  muted: "#eef2ff",
 };
 
 function getApiBaseUrl() {
@@ -220,40 +223,52 @@ function DashboardScreen({ token, onGoWorkOrders, onOpenWorkOrder }) {
   }, [load]);
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <SectionTitle
-        title="Dashboard"
-        right={
-          <Pressable onPress={load} style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border }}>
-            <Text style={{ color: Colors.text, fontWeight: "700" }}>Yenile</Text>
+    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 18, backgroundColor: Colors.primary }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>Dashboard</Text>
+          <Pressable onPress={load} style={{ backgroundColor: "#ffffff33", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}>
+            <Text style={{ color: "#fff", fontWeight: "900" }}>Yenile</Text>
           </Pressable>
-        }
-      />
+        </View>
+      </View>
+
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator />
         </View>
       ) : error ? (
-        <Text style={{ color: Colors.danger }}>{error}</Text>
+        <View style={{ padding: 16 }}>
+          <Text style={{ color: Colors.danger }}>{error}</Text>
+        </View>
       ) : (
-        <View style={{ gap: 12 }}>
+        <View style={{ padding: 16, gap: 12 }}>
           <View style={{ flexDirection: "row", gap: 12 }}>
-            <Card title="Toplam Müşteri" value={stats?.customers} />
-            <Card title="Aktif Hat" value={stats?.activeLines} />
+            <View style={{ flex: 1, backgroundColor: "#fb7185", borderRadius: 18, padding: 14 }}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Üzerimdeki İşler</Text>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 34, marginTop: 6 }}>{stats?.openWorkOrders ?? 0}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: "#60a5fa", borderRadius: 18, padding: 14 }}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Aktif Hat</Text>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 34, marginTop: 6 }}>{stats?.activeLines ?? 0}</Text>
+            </View>
           </View>
           <View style={{ flexDirection: "row", gap: 12 }}>
-            <Card title="Yaklaşan Hatlar" value={stats?.linesExpiring} />
-            <Card title="Süresi Dolmuş Hatlar" value={stats?.linesExpired} />
+            <View style={{ flex: 1, backgroundColor: "#34d399", borderRadius: 18, padding: 14 }}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Aktif Lisans</Text>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 34, marginTop: 6 }}>{stats?.activeLicenses ?? 0}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: "#fbbf24", borderRadius: 18, padding: 14 }}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Yaklaşan Hat</Text>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 34, marginTop: 6 }}>{stats?.linesExpiring ?? 0}</Text>
+            </View>
           </View>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <Card title="Aktif Lisans" value={stats?.activeLicenses} />
-            <Card title="Açık İş Emirleri" value={stats?.openWorkOrders} />
-          </View>
-          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg }}>
+
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 18, padding: 14, backgroundColor: Colors.card }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <Text style={{ color: Colors.text, fontWeight: "900" }}>Bana Atanan (Aktif)</Text>
-              <Pressable onPress={onGoWorkOrders} style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border }}>
-                <Text style={{ color: Colors.text, fontWeight: "800" }}>Tümü</Text>
+              <Pressable onPress={onGoWorkOrders} style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card }}>
+                <Text style={{ color: Colors.text, fontWeight: "900" }}>Tümü</Text>
               </Pressable>
             </View>
             {assigned.length ? (
@@ -265,9 +280,9 @@ function DashboardScreen({ token, onGoWorkOrders, onOpenWorkOrder }) {
                 >
                   <Text style={{ color: Colors.text, fontWeight: "900" }}>{it.orderNumber || "-"}</Text>
                   <Text style={{ color: Colors.sub, fontSize: 12, marginTop: 4 }}>
-                    {it.customer?.customerName ? `Müşteri: ${it.customer.customerName}` : ""}
+                    {it.customer?.customerName ? `${it.customer.customerName}` : ""}
                     {it.customer?.customerName && it.type?.name ? "  •  " : ""}
-                    {it.type?.name ? `Tip: ${it.type.name}` : ""}
+                    {it.type?.name ? `${it.type.name}` : ""}
                   </Text>
                 </Pressable>
               ))
@@ -396,6 +411,7 @@ function WorkOrdersScreen({ token, reloadKey, onNew, onOpen }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [favIds, setFavIds] = useState([]);
 
   const load = useCallback(
     async ({ nextPage = 1, append = false } = {}) => {
@@ -439,48 +455,86 @@ function WorkOrdersScreen({ token, reloadKey, onNew, onOpen }) {
     <Pressable
       onPress={() => setTab(key)}
       style={{
-        flex: 1,
-        paddingVertical: 10,
-        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 999,
         alignItems: "center",
         backgroundColor: tab === key ? Colors.primary : Colors.card,
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: tab === key ? Colors.primary : Colors.border,
       }}
     >
       <Text style={{ color: tab === key ? "#fff" : Colors.text, fontWeight: "800" }}>{label}</Text>
     </Pressable>
   );
 
-  return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <SectionTitle
-        title="İş Emirleri"
-        right={
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Pressable
-              onPress={() => setSortMode((m) => (m === "due" ? "new" : "due"))}
-              style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bg }}
-            >
-              <Text style={{ color: Colors.text, fontWeight: "800" }}>{sortMode === "due" ? "Sıra: Süre" : "Sıra: Yeni"}</Text>
-            </Pressable>
-            <Pressable
-              onPress={onNew}
-              style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bg }}
-            >
-              <Text style={{ color: Colors.text, fontWeight: "800" }}>Yeni</Text>
-            </Pressable>
-          </View>
-        }
-      />
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
-        {tabButton("aktif", "Aktif")}
-        {tabButton("acik", "Açık")}
-        {tabButton("devam", "Devam")}
-        {tabButton("kapali", "Kapalı")}
+  const sortChip = (label, active, onPress) => (
+    <Pressable
+      onPress={onPress}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: active ? Colors.primary : Colors.border,
+        backgroundColor: active ? Colors.muted : Colors.card,
+      }}
+    >
+      <Text style={{ color: Colors.text, fontWeight: "800", fontSize: 12 }}>{label}</Text>
+    </Pressable>
+  );
+
+  const statusPill = (status) => {
+    const label = status === "acik" ? "Açık" : status === "devam" ? "Devam" : status === "kapali" ? "Kapalı" : String(status || "-");
+    const bg = status === "acik" ? "#dbeafe" : status === "devam" ? "#dcfce7" : "#e2e8f0";
+    const fg = status === "acik" ? "#1d4ed8" : status === "devam" ? "#15803d" : "#334155";
+    return (
+      <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999, backgroundColor: bg }}>
+        <Text style={{ color: fg, fontWeight: "900", fontSize: 11 }}>{label}</Text>
       </View>
-      {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
+    );
+  };
+
+  const priorityPill = (priority) => {
+    const label = priority === "yuksek" ? "Yüksek" : priority === "orta" ? "Orta" : priority === "dusuk" ? "Düşük" : String(priority || "-");
+    const bg = priority === "yuksek" ? "#ffe4e6" : priority === "orta" ? "#fef3c7" : "#dcfce7";
+    const fg = priority === "yuksek" ? "#be123c" : priority === "orta" ? "#b45309" : "#15803d";
+    return (
+      <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999, backgroundColor: bg }}>
+        <Text style={{ color: fg, fontWeight: "900", fontSize: 11 }}>{label}</Text>
+      </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 18, backgroundColor: Colors.primary }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>İş Emirleri</Text>
+          <Pressable onPress={onNew} style={{ backgroundColor: "#ffffff33", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}>
+            <Text style={{ color: "#fff", fontWeight: "900" }}>Yeni</Text>
+          </Pressable>
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+          {sortChip("Grupla", false, () => {})}
+          {sortChip(sortMode === "due" ? "Sırala: Süre" : "Sırala: Yeni", true, () => setSortMode((m) => (m === "due" ? "new" : "due")))}
+          {sortChip("Zamana Göre", false, () => {})}
+          {sortChip("Filtre", false, () => {})}
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {tabButton("aktif", "Aktif")}
+          {tabButton("acik", "Açık")}
+          {tabButton("devam", "Devam")}
+          {tabButton("kapali", "Kapalı")}
+        </View>
+        {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
+      </View>
+
       <FlatList
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
         data={rows}
         keyExtractor={(item) => String(item.id)}
         onEndReached={() => {
@@ -490,24 +544,53 @@ function WorkOrdersScreen({ token, reloadKey, onNew, onOpen }) {
         onEndReachedThreshold={0.2}
         renderItem={({ item }) => {
           const due = item?.dueDate ? String(item.dueDate).slice(0, 10) : "";
+          const ribbonLabel = item.status === "devam" ? "Çalışıyor" : item.status === "acik" ? "Atandı" : "Kapalı";
+          const ribbonColor = item.status === "devam" ? Colors.success : item.status === "acik" ? "#2563eb" : "#64748b";
+          const fav = favIds.includes(item.id);
           return (
             <Pressable
               onPress={() => onOpen?.(item)}
-              style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}
+              style={{
+                borderWidth: 1,
+                borderColor: Colors.border,
+                borderRadius: 18,
+                padding: 14,
+                marginBottom: 12,
+                backgroundColor: Colors.card,
+                overflow: "hidden",
+              }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
-                <Text style={{ color: Colors.text, fontWeight: "900" }}>{item.orderNumber || "-"}</Text>
-                {due ? <Text style={{ color: Colors.sub, fontWeight: "800", fontSize: 12 }}>Bitiş: {due}</Text> : null}
+              <View style={{ position: "absolute", right: -56, top: 18, transform: [{ rotate: "45deg" }], width: 160, backgroundColor: ribbonColor, paddingVertical: 8, alignItems: "center" }}>
+                <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>{ribbonLabel}</Text>
               </View>
-              <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
-                {item.customer?.customerName ? `Müşteri: ${item.customer.customerName}` : ""}
+
+              <Pressable
+                onPress={() => setFavIds((prev) => (prev.includes(item.id) ? prev.filter((x) => x !== item.id) : [...prev, item.id]))}
+                style={{ position: "absolute", right: 12, top: 10, height: 34, width: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#ffffffcc", borderWidth: 1, borderColor: Colors.border }}
+              >
+                <Text style={{ fontSize: 18, color: fav ? "#e11d48" : "#94a3b8" }}>{fav ? "♥" : "♡"}</Text>
+              </Pressable>
+
+              <Text style={{ color: Colors.text, fontWeight: "900", fontSize: 16 }}>{item.type?.name || "İş Emri"}</Text>
+              <Text style={{ color: Colors.sub, marginTop: 4 }}>{item.description || "-"}</Text>
+              <Text style={{ color: Colors.sub, marginTop: 6, fontSize: 12 }}>
+                {item.customer?.customerName ? `${item.customer.customerName}` : ""}
                 {item.customer?.customerName && item.branch?.name ? "  •  " : ""}
-                {item.branch?.name ? `Şube: ${item.branch.name}` : ""}
+                {item.branch?.name ? item.branch.name : ""}
               </Text>
-              <Text style={{ color: Colors.sub, marginTop: 4, fontSize: 12 }}>
-                {item.type?.name ? `Tip: ${item.type.name}  •  ` : ""}
-                Durum: {item.status}  •  Öncelik: {item.priority}
-              </Text>
+
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10, alignItems: "center" }}>
+                <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999, backgroundColor: "#f1f5f9" }}>
+                  <Text style={{ color: Colors.text, fontWeight: "900", fontSize: 11 }}>{item.orderNumber || "-"}</Text>
+                </View>
+                {statusPill(item.status)}
+                {priorityPill(item.priority)}
+                {due ? (
+                  <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999, backgroundColor: "#f1f5f9" }}>
+                    <Text style={{ color: Colors.sub, fontWeight: "900", fontSize: 11 }}>{due}</Text>
+                  </View>
+                ) : null}
+              </View>
             </Pressable>
           );
         }}
@@ -671,11 +754,11 @@ function WorkOrderCreateModal({ token, visible, onClose, onCreated }) {
 
   return (
     <SafeAreaView style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
-      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 18, fontWeight: "900", color: Colors.text }}>Yeni İş Emri</Text>
-        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border }}>
-          <Text style={{ color: Colors.text, fontWeight: "800" }}>Kapat</Text>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <View style={{ padding: 16, backgroundColor: Colors.primary, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ fontSize: 18, fontWeight: "900", color: "#fff" }}>Yeni İş Emri</Text>
+        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: "#ffffff33" }}>
+          <Text style={{ color: "#fff", fontWeight: "900" }}>Kapat</Text>
         </Pressable>
       </View>
 
@@ -934,11 +1017,11 @@ function LineCreateModal({ token, customer, visible, onClose, onCreated }) {
 
   return (
     <SafeAreaView style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
-      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 18, fontWeight: "900", color: Colors.text }}>Hat Tanımla</Text>
-        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border }}>
-          <Text style={{ color: Colors.text, fontWeight: "800" }}>Kapat</Text>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <View style={{ padding: 16, backgroundColor: Colors.primary, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ fontSize: 18, fontWeight: "900", color: "#fff" }}>Hat Tanımla</Text>
+        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: "#ffffff33" }}>
+          <Text style={{ color: "#fff", fontWeight: "900" }}>Kapat</Text>
         </Pressable>
       </View>
       <View style={{ flex: 1, padding: 16 }}>
@@ -1123,11 +1206,11 @@ function WorkOrderDetailModal({ token, workOrderId, visible, onClose, onUpdated 
 
   return (
     <SafeAreaView style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
-      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 18, fontWeight: "900", color: Colors.text }}>{headerTitle}</Text>
-        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border }}>
-          <Text style={{ color: Colors.text, fontWeight: "800" }}>Kapat</Text>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <View style={{ padding: 16, backgroundColor: Colors.primary, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ fontSize: 18, fontWeight: "900", color: "#fff" }}>{headerTitle}</Text>
+        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: "#ffffff33" }}>
+          <Text style={{ color: "#fff", fontWeight: "900" }}>Kapat</Text>
         </Pressable>
       </View>
 
@@ -1139,7 +1222,7 @@ function WorkOrderDetailModal({ token, workOrderId, visible, onClose, onUpdated 
         ) : (
           <>
             {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
-            <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 12 }}>
+            <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 18, padding: 14, backgroundColor: Colors.card, marginBottom: 12 }}>
               <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Müşteri</Text>
               <Text style={{ color: Colors.text, fontWeight: "900", marginTop: 4 }}>{wo?.customer?.customerName || "-"}</Text>
               <Text style={{ color: Colors.sub, marginTop: 6, fontSize: 12 }}>
