@@ -359,18 +359,20 @@ function CustomersScreen({ token }) {
   );
 }
 
-function WorkOrdersScreen({ token }) {
+function WorkOrdersScreen({ token, reloadKey, onNew }) {
   const [tab, setTab] = useState("acik");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const load = useCallback(
     async ({ nextPage = 1, append = false } = {}) => {
       if (loading) return;
       setLoading(true);
+      setError("");
       try {
         const params = new URLSearchParams();
         params.set("page", String(nextPage));
@@ -381,6 +383,8 @@ function WorkOrdersScreen({ token }) {
         setPage(Number(data?.page || nextPage));
         const items = Array.isArray(data?.data) ? data.data : [];
         setRows((prev) => (append ? [...prev, ...items] : items));
+      } catch (e) {
+        setError("Liste alınamadı");
       } finally {
         setLoading(false);
       }
@@ -390,7 +394,7 @@ function WorkOrdersScreen({ token }) {
 
   useEffect(() => {
     load({ nextPage: 1, append: false });
-  }, [load]);
+  }, [load, reloadKey]);
 
   const canLoadMore = rows.length < total;
 
@@ -413,12 +417,23 @@ function WorkOrdersScreen({ token }) {
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
-      <SectionTitle title="İş Emirleri" />
+      <SectionTitle
+        title="İş Emirleri"
+        right={
+          <Pressable
+            onPress={onNew}
+            style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bg }}
+          >
+            <Text style={{ color: Colors.text, fontWeight: "800" }}>Yeni</Text>
+          </Pressable>
+        }
+      />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
         {tabButton("acik", "Açık")}
         {tabButton("devam", "Devam")}
         {tabButton("kapali", "Kapalı")}
       </View>
+      {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
       <FlatList
         data={rows}
         keyExtractor={(item) => String(item.id)}
@@ -449,6 +464,343 @@ function WorkOrdersScreen({ token }) {
         }
       />
     </View>
+  );
+}
+
+function WorkOrderCreateModal({ token, visible, onClose, onCreated }) {
+  const [step, setStep] = useState("pickCustomer");
+  const [q, setQ] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [customer, setCustomer] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [types, setTypes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const [orderNumber, setOrderNumber] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [description, setDescription] = useState("");
+  const [assignedUserId, setAssignedUserId] = useState("");
+  const [typeId, setTypeId] = useState("");
+  const [priority, setPriority] = useState("orta");
+  const [notes, setNotes] = useState("");
+  const [dueDate, setDueDate] = useState("");
+
+  const reset = useCallback(() => {
+    setStep("pickCustomer");
+    setQ("");
+    setCustomers([]);
+    setCustomer(null);
+    setBranches([]);
+    setUsers([]);
+    setTypes([]);
+    setError("");
+    setOrderNumber("");
+    setBranchId("");
+    setDescription("");
+    setAssignedUserId("");
+    setTypeId("");
+    setPriority("orta");
+    setNotes("");
+    setDueDate("");
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    reset();
+  }, [visible, reset]);
+
+  const loadCustomers = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams();
+      params.set("page", "1");
+      params.set("pageSize", "200");
+      if (q.trim()) params.set("q", q.trim());
+      const data = await apiRequest(`/customers?${params.toString()}`, { token });
+      setCustomers(Array.isArray(data?.data) ? data.data : []);
+    } catch (e) {
+      setError("Müşteriler alınamadı");
+    } finally {
+      setLoading(false);
+    }
+  }, [q, token]);
+
+  useEffect(() => {
+    if (!visible) return;
+    if (step !== "pickCustomer") return;
+    loadCustomers();
+  }, [visible, step, loadCustomers]);
+
+  const selectCustomer = useCallback(
+    async (c) => {
+      setCustomer(c);
+      setStep("form");
+      setLoading(true);
+      setError("");
+      try {
+        const [br, us, ty] = await Promise.all([
+          apiRequest(`/customers/${encodeURIComponent(c.id)}/branches`, { token }),
+          apiRequest("/users", { token }),
+          apiRequest("/work-order-types", { token }),
+        ]);
+        setBranches(Array.isArray(br?.data) ? br.data : []);
+        setUsers(Array.isArray(us?.data) ? us.data : []);
+        setTypes(Array.isArray(ty?.data) ? ty.data : []);
+      } catch (e) {
+        setError("Form verileri alınamadı");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token]
+  );
+
+  const fillNextNumber = useCallback(async () => {
+    setError("");
+    try {
+      const data = await apiRequest("/work-orders/next-number", { token });
+      if (data?.next) setOrderNumber(String(data.next));
+    } catch (e) {
+      setError("Otomatik numara alınamadı");
+    }
+  }, [token]);
+
+  const submit = useCallback(async () => {
+    setError("");
+    if (!customer?.id) {
+      setError("Müşteri seçiniz");
+      return;
+    }
+    if (!description.trim()) {
+      setError("Detay zorunlu");
+      return;
+    }
+    setSaving(true);
+    try {
+      const body = {
+        order_number: orderNumber.trim() || undefined,
+        customer_id: customer.id,
+        branch_id: branchId || undefined,
+        description: description.trim(),
+        assigned_user_id: assignedUserId || undefined,
+        type_id: typeId || undefined,
+        priority,
+        notes: notes.trim() || undefined,
+        due_date: dueDate.trim() || undefined,
+      };
+      await apiRequest("/work-orders", { method: "POST", token, body });
+      onCreated?.();
+      onClose?.();
+    } catch (e) {
+      const msg = String(e?.message || "");
+      if (msg.includes("order_number_in_use")) {
+        setError("İş emri numarası kullanımda. Otomatik numara ile tekrar deneyin.");
+      } else if (e?.status === 401) {
+        setError("Oturum süresi doldu. Tekrar giriş yapın.");
+      } else if (e?.status === 403) {
+        setError("Yetkiniz yok (admin gerekli olabilir).");
+      } else {
+        setError("Kaydedilemedi");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [assignedUserId, branchId, customer, description, dueDate, notes, onClose, onCreated, orderNumber, priority, token, typeId]);
+
+  if (!visible) return null;
+
+  return (
+    <SafeAreaView style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.bg }}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
+      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ fontSize: 18, fontWeight: "900", color: Colors.text }}>Yeni İş Emri</Text>
+        <Pressable onPress={onClose} style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border }}>
+          <Text style={{ color: Colors.text, fontWeight: "800" }}>Kapat</Text>
+        </Pressable>
+      </View>
+
+      {step === "pickCustomer" ? (
+        <View style={{ flex: 1, padding: 16 }}>
+          <TextInput
+            placeholder="Müşteri ara..."
+            placeholderTextColor="#94a3b8"
+            value={q}
+            onChangeText={setQ}
+            style={{
+              borderWidth: 1,
+              borderColor: Colors.border,
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              color: Colors.text,
+              marginBottom: 10,
+            }}
+          />
+          <Pressable
+            onPress={loadCustomers}
+            style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, marginBottom: 10 }}
+          >
+            <Text style={{ color: Colors.text, fontWeight: "800" }}>Ara</Text>
+          </Pressable>
+          {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
+          {loading ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator />
+            </View>
+          ) : (
+            <FlatList
+              data={customers}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => selectCustomer(item)}
+                  style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: "900" }}>{item.customerName || "-"}</Text>
+                  <Text style={{ color: Colors.sub, marginTop: 2 }}>{item.companyName || ""}</Text>
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
+      ) : (
+        <View style={{ flex: 1, padding: 16 }}>
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 12 }}>
+            <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Müşteri</Text>
+            <Text style={{ color: Colors.text, fontWeight: "900", marginTop: 4 }}>{customer?.customerName || "-"}</Text>
+            <Pressable onPress={() => setStep("pickCustomer")} style={{ marginTop: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, alignSelf: "flex-start" }}>
+              <Text style={{ color: Colors.text, fontWeight: "800" }}>Değiştir</Text>
+            </Pressable>
+          </View>
+
+          {error ? <Text style={{ color: Colors.danger, marginBottom: 10 }}>{error}</Text> : null}
+
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+            <TextInput
+              placeholder="İş emri numarası (opsiyonel)"
+              placeholderTextColor="#94a3b8"
+              value={orderNumber}
+              onChangeText={setOrderNumber}
+              style={{ flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: Colors.text }}
+            />
+            <Pressable onPress={fillNextNumber} style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border }}>
+              <Text style={{ color: Colors.text, fontWeight: "800" }}>Otomatik</Text>
+            </Pressable>
+          </View>
+
+          <TextInput
+            placeholder="Detay"
+            placeholderTextColor="#94a3b8"
+            value={description}
+            onChangeText={setDescription}
+            style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: Colors.text, marginBottom: 10 }}
+          />
+
+          <TextInput
+            placeholder="Not (opsiyonel)"
+            placeholderTextColor="#94a3b8"
+            value={notes}
+            onChangeText={setNotes}
+            style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: Colors.text, marginBottom: 10 }}
+          />
+
+          <TextInput
+            placeholder="Bitiş tarihi (YYYY-MM-DD) opsiyonel"
+            placeholderTextColor="#94a3b8"
+            value={dueDate}
+            onChangeText={setDueDate}
+            style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: Colors.text, marginBottom: 10 }}
+          />
+
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+            <Pressable
+              onPress={() => setPriority("dusuk")}
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", backgroundColor: priority === "dusuk" ? Colors.primary : Colors.card, borderWidth: 1, borderColor: Colors.border }}
+            >
+              <Text style={{ color: priority === "dusuk" ? "#fff" : Colors.text, fontWeight: "800" }}>Düşük</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setPriority("orta")}
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", backgroundColor: priority === "orta" ? Colors.primary : Colors.card, borderWidth: 1, borderColor: Colors.border }}
+            >
+              <Text style={{ color: priority === "orta" ? "#fff" : Colors.text, fontWeight: "800" }}>Orta</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setPriority("yuksek")}
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", backgroundColor: priority === "yuksek" ? Colors.primary : Colors.card, borderWidth: 1, borderColor: Colors.border }}
+            >
+              <Text style={{ color: priority === "yuksek" ? "#fff" : Colors.text, fontWeight: "800" }}>Yüksek</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 10 }}>
+            <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Şube</Text>
+            <FlatList
+              data={[{ id: "", name: "Şube seçilmedi" }, ...branches]}
+              horizontal
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => setBranchId(String(item.id))}
+                  style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 999, marginRight: 8, borderWidth: 1, borderColor: Colors.border, backgroundColor: branchId === String(item.id) ? "#eff6ff" : Colors.card }}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: "800", fontSize: 12 }}>{item.name || "Şube"}</Text>
+                </Pressable>
+              )}
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 10 }}>
+            <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Tip</Text>
+            <FlatList
+              data={[{ id: "", name: "Tip seçilmedi" }, ...types]}
+              horizontal
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => setTypeId(String(item.id))}
+                  style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 999, marginRight: 8, borderWidth: 1, borderColor: Colors.border, backgroundColor: typeId === String(item.id) ? "#eff6ff" : Colors.card }}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: "800", fontSize: 12 }}>{item.name || "Tip"}</Text>
+                </Pressable>
+              )}
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+
+          <View style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, backgroundColor: Colors.bg, marginBottom: 12 }}>
+            <Text style={{ color: Colors.sub, fontSize: 12, fontWeight: "700" }}>Atanan</Text>
+            <FlatList
+              data={[{ id: "", name: "Atama yok" }, ...users]}
+              horizontal
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => setAssignedUserId(String(item.id))}
+                  style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 999, marginRight: 8, borderWidth: 1, borderColor: Colors.border, backgroundColor: assignedUserId === String(item.id) ? "#eff6ff" : Colors.card }}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: "800", fontSize: 12 }}>{item.name || "Kullanıcı"}</Text>
+                </Pressable>
+              )}
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+
+          <Pressable
+            onPress={submit}
+            disabled={saving || loading}
+            style={{ backgroundColor: Colors.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center", opacity: saving || loading ? 0.7 : 1 }}
+          >
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Kaydet</Text>}
+          </Pressable>
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -753,11 +1105,34 @@ function SettingsScreen({ user, onLogout }) {
   );
 }
 
+function MoreScreen({ onNavigate }) {
+  const item = (key, label) => (
+    <Pressable
+      onPress={() => onNavigate(key)}
+      style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: Colors.bg }}
+    >
+      <Text style={{ color: Colors.text, fontWeight: "900" }}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <SectionTitle title="Daha" />
+      {item("lines", "Hatlar")}
+      {item("licenses", "Lisanslar")}
+      {item("reports", "Raporlar")}
+      {item("settings", "Ayarlar")}
+    </View>
+  );
+}
+
 export default function App() {
   const [booting, setBooting] = useState(true);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("dashboard");
+  const [showCreateWorkOrder, setShowCreateWorkOrder] = useState(false);
+  const [workOrdersReloadKey, setWorkOrdersReloadKey] = useState(0);
 
   const loadSession = useCallback(async () => {
     setBooting(true);
@@ -820,12 +1195,13 @@ export default function App() {
     if (!token) return null;
     if (tab === "dashboard") return <DashboardScreen token={token} />;
     if (tab === "customers") return <CustomersScreen token={token} />;
-    if (tab === "workOrders") return <WorkOrdersScreen token={token} />;
+    if (tab === "workOrders") return <WorkOrdersScreen token={token} reloadKey={workOrdersReloadKey} onNew={() => setShowCreateWorkOrder(true)} />;
     if (tab === "lines") return <LinesScreen token={token} />;
     if (tab === "licenses") return <LicensesScreen token={token} />;
     if (tab === "reports") return <ReportsScreen token={token} />;
-    return <SettingsScreen user={user} onLogout={onLogout} />;
-  }, [tab, token, user, onLogout]);
+    if (tab === "settings") return <SettingsScreen user={user} onLogout={onLogout} />;
+    return <MoreScreen onNavigate={setTab} />;
+  }, [tab, token, user, onLogout, workOrdersReloadKey]);
 
   if (Platform.OS === "web") {
     return (
@@ -851,19 +1227,24 @@ export default function App() {
 
   if (!token) return <LoginScreen onLogin={onLogin} />;
 
+  const mainTab = ["lines", "licenses", "reports", "settings", "more"].includes(tab) ? "more" : tab;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
       <View style={{ flex: 1 }}>{screen}</View>
       <View style={{ flexDirection: "row" }}>
-        <TabButton active={tab === "dashboard"} label="Anasayfa" onPress={() => setTab("dashboard")} />
-        <TabButton active={tab === "customers"} label="Müşteriler" onPress={() => setTab("customers")} />
-        <TabButton active={tab === "workOrders"} label="İş Emirleri" onPress={() => setTab("workOrders")} />
-        <TabButton active={tab === "lines"} label="Hatlar" onPress={() => setTab("lines")} />
-        <TabButton active={tab === "licenses"} label="Lisanslar" onPress={() => setTab("licenses")} />
-        <TabButton active={tab === "reports"} label="Raporlar" onPress={() => setTab("reports")} />
-        <TabButton active={tab === "settings"} label="Ayarlar" onPress={() => setTab("settings")} />
+        <TabButton active={mainTab === "dashboard"} label="Anasayfa" onPress={() => setTab("dashboard")} />
+        <TabButton active={mainTab === "workOrders"} label="İş Emirleri" onPress={() => setTab("workOrders")} />
+        <TabButton active={mainTab === "customers"} label="Müşteriler" onPress={() => setTab("customers")} />
+        <TabButton active={mainTab === "more"} label="Daha" onPress={() => setTab("more")} />
       </View>
+      <WorkOrderCreateModal
+        token={token}
+        visible={showCreateWorkOrder}
+        onClose={() => setShowCreateWorkOrder(false)}
+        onCreated={() => setWorkOrdersReloadKey((k) => k + 1)}
+      />
     </SafeAreaView>
   );
 }
