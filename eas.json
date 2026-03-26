@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 16.32.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_WEB_ORIGIN": "https://microvisecrm.vercel.app"
+      },
+      "ios": {
+        "image": "latest"
+      }
+    },
+    "internal": {
+      "ios": {
+        "developmentClient": true,
+        "distribution": "internal"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleTeamId": "A7PVY89X76",
+        "ascAppId": "6760787518"
+      }
+    }
+  }
+}
